@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 10/11/2016
+//                          Last Revised Date: 10/13/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 // =======================================================================================
@@ -36,18 +36,35 @@
 
 #define ENABLE_PIN       31 // Sets the enable pin throughout the code
 
-#define FLYWHEELLT_PIN   42 // Sets the flywheel pins for PWM    43   
-#define FLYWHEELRT_PIN   44// 45
+#define FLYWHEELLT_PIN   42 // Sets the flywheel pins for PWM 
+#define FLYWHEELRT_PIN   44
 
-#define GIMBLELT_PIN     43 // Sets the gimble left/right pins for PWM 42
-#define GIMBLERT_PIN     45 // 44
+#define GIMBLELT_PIN     43 // Sets the gimble left/right pins for PWM
+#define GIMBLERT_PIN     45
 #define GIMBLESP_PIN      7 // Sets the gimble spin motor for PWM
 
 #define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM
 #define MAINREV_PIN       3
 
-#define SWINGLT_PIN       5 // Sets the gyro/flywheel swing motor for PWM 5
-#define SWINGRT_PIN       6 // 6
+#define SWINGLT_PIN       5 // Sets the gyro/flywheel swing motor for PWM
+#define SWINGRT_PIN       6
+
+// Use the below settings for arduino mega ADK without USB shield
+// ---------------------------------------------------------------------------------------
+//#define ENABLE_PIN       31 // Sets the enable pin throughout the code
+
+//#define FLYWHEELLT_PIN   9  // Sets the flywheel pins for PWM       
+//#define FLYWHEELRT_PIN   10
+//
+//#define GIMBLELT_PIN     6  // Sets the gimble left/right pins for PWM
+//#define GIMBLERT_PIN     7
+//#define GIMBLESP_PIN     8  // Sets the gimble spin motor for PWM
+//
+//#define MAINFWD_PIN      2 // Sets the forward/backward motor for PWM
+//#define MAINREV_PIN      3
+//
+//#define SWINGLT_PIN      4 // Sets the gyro/flywheel swing motor for PWM
+//#define SWINGRT_PIN      5
 
 
 #define SHADOW_DEBUG            //uncomment this for console DEBUG output
@@ -397,7 +414,7 @@ void getMPU()
       
       pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
       roll = roll + norm.XAxis * timeStep;      // Calculate Roll
-      yaw = yaw + norm.ZAxis * timeStep;
+      yaw = yaw + norm.ZAxis * timeStep;        // Calculate yaw
       
       // Output raw
       #ifdef SHADOW_DEBUG_MPU
@@ -409,6 +426,7 @@ void getMPU()
       previousmpuMillis = ((timeStep*1000) - (millis() - timer));    // Wait to full timeStep period
     } 
   }
+  else return;
 
 }
 
@@ -435,9 +453,9 @@ void getPOT()
 
 void DomeDrive()
 {
-  if (isPS3NavigatonInitialized)
+  if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected)
   {
-    readUSB();
+    readUSB();  // verify PS3 navigation controller is still alive.
     if ((millis() - previousDomeMillis) < (2 * serialLatency) ) return;
 //    ch3a=map(ch3,50,590,0,180); // jlv modified variables
     ch3a=map(ch3,0,255,0,180);
@@ -527,6 +545,7 @@ void DomeDrive()
     #endif
     previousDomeMillis = millis();
   }
+  else return;
 }
 
 
@@ -536,44 +555,49 @@ void DomeDrive()
 
 void spinFlywheel()
 {
-  if (isPS3NavigatonInitialized)
+  if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected)
   {
     readUSB();
 //    if ((millis() - previousDomeMillis) < (2 * serialLatency) ) return;
 //    ch6a = map(ch6,0,512,255,-255);
-    ch6a = map(ch6,0,255,127,-127); // jlv modified variables
-    
-    if (ch6a <= -10)                // decide which way to turn the wheels based on deadSpot variable
+    if (isDriveEnabled)
     {
-      ch6a = abs(ch6a);
-      analogWrite(FLYWHEELLT_PIN, ch6a);         // set PWM pins 
-      analogWrite(FLYWHEELRT_PIN, 0);
+      ch6a = map(ch6,0,255,127,-127); // jlv modified variables  PS3 LEFT L2 + RIGHT X
+      if (ch6a <= -10)                // decide which way to turn the wheels based on deadSpot variable
+      {
+        ch6a = abs(ch6a);
+        analogWrite(FLYWHEELLT_PIN, ch6a);         // set PWM pins 
+        analogWrite(FLYWHEELRT_PIN, 0);
+        }
+      if (ch6a > 10)            // decide which way to turn the wheels based on deadSpot variable
+        { 
+        ch6a = abs(ch6a);
+        analogWrite(FLYWHEELRT_PIN, ch6a);  
+        analogWrite(FLYWHEELLT_PIN, 0);
+        }
+      
+      else {
+        analogWrite(FLYWHEELLT_PIN, 0);  
+        analogWrite(FLYWHEELRT_PIN, 0);
       }
-    if (ch6a > 10)            // decide which way to turn the wheels based on deadSpot variable
-      { 
-      ch6a = abs(ch6a);
-      analogWrite(FLYWHEELRT_PIN, ch6a);  
-      analogWrite(FLYWHEELLT_PIN, 0);
-      }
-    
-    else {
-      analogWrite(FLYWHEELLT_PIN, 0);  
-      analogWrite(FLYWHEELRT_PIN, 0);
+      #ifdef SHADOW_DEBUG_FLYWHEEL
+        output += "\tCH6: ";
+        output += ch6;
+        output += "\tCH6a: ";
+        output += ch6a;
+      #endif
     }
-    #ifdef SHADOW_DEBUG_FLYWHEEL
-      output += "\tCH6: ";
-      output += ch6;
-      output += "\tCH6a: ";
-      output += ch6a;
-    #endif
   }
+  else return;
 }
 
 void MotorDrive()
 {
-  if (isPS3NavigatonInitialized)
+  if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected)
   {
-    readUSB();
+    if (isDriveEnabled)
+    {
+      readUSB();
     
 // =====================================================================================================================
 //                          TROUSER Stability PID Controls (Left/Right)
@@ -676,31 +700,27 @@ void MotorDrive()
           output += "\tOutput3a: ";
           output += Output3a;
         #endif
-        
-
+    }
   }
-  else if (!PS3Nav->PS3NavigationConnected)
-  {
-      if (!isMotorStopped)
-      {
-        analogWrite(MAINFWD_PIN, 0); // set PWM pins 
-        analogWrite(MAINREV_PIN, 0);
-        analogWrite(SWINGLT_PIN, 0); // set PWM pins 
-        analogWrite(SWINGRT_PIN, 0);
-        
-        isMotorStopped = true;
-        DriveSpeed = 0;
-
-        #ifdef SHADOW_VERBOSE
-                output += "\r\n***All Motors STOPPED***\r\n";
-        #endif
-      }
-  }
-
+  else
+    {
+      analogWrite(MAINFWD_PIN, 0); // set PWM pins to zero
+      analogWrite(MAINREV_PIN, 0);
+      analogWrite(SWINGLT_PIN, 0); // set PWM pins to zero
+      analogWrite(SWINGRT_PIN, 0);
+      
+      isMotorStopped = true;
+      
+      #ifdef SHADOW_VERBOSE
+              output += "\r\n***All Motors STOPPED***\r\n";
+      #endif
+    }
+  return;
 }
 
 void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
 {
+    readUSB();
     if(myPS3->getButtonPress(PS)&&myPS3->getButtonClick(L3))
     {
       //Quick Shutdown of PS3 Controller
@@ -790,6 +810,7 @@ void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
 void GetJoyStickValues()
 {
   if ((millis() - previousMainDriveMillis) < serialLatency) return;  //Flood control prevention
+  readUSB();
   if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected)
   {
     if (PS3Nav->getAnalogHat(LeftHatX) > 137 || PS3Nav->getAnalogHat(LeftHatX) < 117 || PS3Nav->getAnalogHat(LeftHatY) > 137 || PS3Nav->getAnalogHat(LeftHatY) < 117 || PS3Nav2->getAnalogHat(LeftHatX) > 137 || PS3Nav2->getAnalogHat(LeftHatX) < 117 || PS3Nav2->getAnalogHat(LeftHatY) > 137 || PS3Nav2->getAnalogHat(LeftHatY) < 117) 
@@ -843,7 +864,8 @@ void GetJoyStickValues()
 #ifdef TEST_CONTROLLER
 void PS3testController(PS3BT* myPS3 = PS3Nav)
 {
-    if (myPS3->PS3Connected || myPS3->PS3NavigationConnected) {
+    if (myPS3->PS3Connected || myPS3->PS3NavigationConnected) 
+    {
         if (myPS3->getButtonPress(PS) && (myPS3->getAnalogHat(LeftHatX) > 137 || myPS3->getAnalogHat(LeftHatX) < 117 || myPS3->getAnalogHat(LeftHatY) > 137 || myPS3->getAnalogHat(LeftHatY) < 117 || myPS3->getAnalogHat(RightHatX) > 137 || myPS3->getAnalogHat(RightHatX) < 117 || myPS3->getAnalogHat(RightHatY) > 137 || myPS3->getAnalogHat(RightHatY) < 117)) {     
             output += "LeftHatX: ";
             output += myPS3->getAnalogHat(LeftHatX);
