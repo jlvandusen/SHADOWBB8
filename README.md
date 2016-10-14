@@ -8,3 +8,5 @@ Further work will entail:
 3. Add PS4 sixaxis controller configuration
 4. add mp3trigger controls
 5. Add Dome Automation routines
+
+NOTE: This is my personal code for S.H.A.D.O.W. (Small Handheld Arduino Droid Operating Wand) that I use to control my BB8 droid.
