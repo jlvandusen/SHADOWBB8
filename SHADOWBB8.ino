@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 10/13/2016
+//                          Last Revised Date: 10/18/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 // =======================================================================================
@@ -68,7 +68,7 @@
 
 
 #define SHADOW_DEBUG            //uncomment this for console DEBUG output
-#define SHADOW_VERBOSE          //uncomment this for console VERBOSE output
+//#define SHADOW_VERBOSE          //uncomment this for console VERBOSE output
 //#define SHADOW_DEBUG_MPU        //uncomment this for console DEBUG MPU6050 output
 //#define SHADOW_DEBUG_POT        //uncomment this for console DEBUG POT output
 #define SHADOW_DEBUG_JOY        //uncomment this for console DEBUG Joystick(s) output
@@ -97,7 +97,9 @@
 #include <MP3Trigger.h>
 MP3Trigger trigger;
 
-String PS3MoveNavigatonPrimaryMAC = "00:06:F7:8F:36:7B"; //If using multiple controlers, designate a primary
+//String PS3MoveNavigatonPrimaryMAC = "00:06:F7:8F:36:7B"; //If using multiple controlers, designate a primary 00:06:F5:5A:BD:17
+//String PS3MoveNavigatonPrimaryMAC = "00:06:F5:5A:BD:17"; 
+String PS3MoveNavigatonPrimaryMAC = "00:06:F5:64:60:3E";
 
 byte joystickDeadZoneRange = 15;  // For controllers that centering problems, use the lowest number with no drift
 byte driveDeadBandRange = 15;     // Used to set the Motor Controller DeadZone for drive motors
@@ -145,6 +147,7 @@ String output = "";
 
 byte vol = 40; // 0 = full volume, 255 off
 boolean isStickEnabled = true;
+boolean isMPUENABLED = false; 
 byte isAutomateDomeOn = false;
 byte isDriveEnabled = false;
 byte isFootMotorStopped = true;
@@ -266,6 +269,7 @@ void setup()
     if(!mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G))
     {
       Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
+      isMPUENABLED = false;
     }
     else
     {
@@ -278,6 +282,7 @@ void setup()
       // If you don't want use threshold, comment this line or set 0.
       mpu.setThreshold(3);
       Serial.println("MPU6050 calibration completed");
+      isMPUENABLED = true;
     }
 
 // *************************** Sound Controller setup *********************************************
@@ -404,30 +409,32 @@ void loop() // LOOP through functions from highest to lowest priority.
 
 void getMPU()
 {
-  if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
+  if (isMPUENABLED)
   {
-    unsigned long currentmpuMillis = millis(); // grab current time 
-    if ((unsigned long)(currentmpuMillis - previousmpuMillis) >= mpuinterval) // check if "interval" time has passed (1000 milliseconds)
+    if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
     {
-      float timeStep = 0.01;
-      Vector norm = mpu.readNormalizeGyro();    // Read normalized values
-      
-      pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
-      roll = roll + norm.XAxis * timeStep;      // Calculate Roll
-      yaw = yaw + norm.ZAxis * timeStep;        // Calculate yaw
-      
-      // Output raw
-      #ifdef SHADOW_DEBUG_MPU
-        output += "\tPitch: ";
-        output += pitch;
-        output += "\tRoll: ";
-        output += roll;
-      #endif 
-      previousmpuMillis = ((timeStep*1000) - (millis() - timer));    // Wait to full timeStep period
-    } 
+      unsigned long currentmpuMillis = millis(); // grab current time 
+      if ((unsigned long)(currentmpuMillis - previousmpuMillis) >= mpuinterval) // check if "interval" time has passed (1000 milliseconds)
+      {
+        float timeStep = 0.01;
+        Vector norm = mpu.readNormalizeGyro();    // Read normalized values
+        
+        pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
+        roll = roll + norm.XAxis * timeStep;      // Calculate Roll
+        yaw = yaw + norm.ZAxis * timeStep;        // Calculate yaw
+        
+        // Output raw
+        #ifdef SHADOW_DEBUG_MPU
+          output += "\tPitch: ";
+          output += pitch;
+          output += "\tRoll: ";
+          output += roll;
+        #endif 
+        previousmpuMillis = ((timeStep*1000) - (millis() - timer));    // Wait to full timeStep period
+      } 
+    }
+    else return;
   }
-  else return;
-
 }
 
 // =======================================================================================
