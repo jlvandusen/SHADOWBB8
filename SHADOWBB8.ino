@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 11/11/2016
+//                          Last Revised Date: 12/3/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 // =======================================================================================
@@ -101,8 +101,6 @@
 #include <MPU6050.h>  // utilize raw communications to MPU rather than DMP
 #include <Wire.h>
 #include <PID_v1.h>  //PID loop from http://playground.arduino.cc/Code/PIDLibrary
-#include <MP3Trigger.h>
-MP3Trigger trigger;
 
 String PS3MoveNavigatonPrimaryMAC = "00:06:F5:64:60:3E";
 //String PS3MoveNavigatonPrimaryMAC = "00:06:F7:8F:36:7B"; //If using multiple controlers, designate a primary 00:06:F5:5A:BD:17
@@ -403,10 +401,10 @@ void loop() // LOOP through functions from highest to lowest priority.
     else
     {
 //      testController();
+//      spinFlywheel();       // Spins the flywheels for stationary turn
       GetJoyStickValues();  // this configures the move controllers to update ch1-6 with values
       DomeDrive();          // controls the gimble for left, right and forward/backward movement
-//      spinFlywheel();       // Spins the flywheels for stationary turn
-//      MotorDrive();         // Main Drive and Gyro swing for turning
+      MotorDrive();         // Main Drive and Gyro swing for turning
       toggleSettings();     // Listens for key combinations from the move controllers
     }
     flushTerminal();
@@ -504,35 +502,20 @@ void DomeDrive()
     varServo1 = constrain(varServo1,10,170);
     varServo2 = constrain(varServo2,10,170);
 
-    target_pos_headturn = map(ch5, 0,255,0,360);
-    
-//    easing_headturn = 50;          //modify this value for sensitivity
-//    easing_headturn /= 1000;
-    
-    // Work out the required travel.
-    diff_headturn = target_pos_headturn - current_pos_headturn;    
-    
-    // Avoid any strange zero condition
-    if( diff_headturn != 0.00 ) 
+    target_pos_headturn = map(ch5, 0,255,0,180);        // read in the values of the controller using R2 of left joystick + left/right of the right joystick
+     
+    if (!isDriveEnabled || ch4 == 0 || ch3 == 0)        // enable pin is off and left joystick is not moving
     {
-//      current_pos_headturn += diff_headturn * easing_headturn;
-      current_pos_headturn += diff_headturn; // jlv modified variables
-    }
-    #ifdef SHADOW_DEBUG_GIMBLETURN
-      output += "\tCH5: ";
-      output += ch5;
-      output += "\tTargetPOS: ";
-      output += target_pos_headturn;
-      output += "\tDiffHeadTurn: ";
-      output += diff_headturn;
-      output += "\tCurrentPOS: ";
-      output += current_pos_headturn;    
-    #endif
-        
-    if (!isDriveEnabled)        // enable pin is off
-    {
-      if (servo1.read()!=60) servo1.write(60);         // set servos to back/middle position
-      if (servo2.read()!=120) servo2.write(120);
+      if (servo1.read()!=60)
+      {
+        servo1.attach(GIMBLERT_PIN);      // Attach Left Servo for gimble
+        servo1.write(60);         // set servos to back/middle position
+      }
+      if (servo2.read()!=120) 
+      {
+        servo2.attach(GIMBLELT_PIN);      // Attach Left Servo for gimble
+        servo2.write(120);
+      }
       servo1.detach();
       servo2.detach();
     }
@@ -543,8 +526,20 @@ void DomeDrive()
       servo1.write(varServo1);          // set servos to stick positions
       servo2.write(varServo2); 
 //      servo3.writeMicroseconds(current_pos_headturn); 
-      if (current_pos_headturn!=0 && diff_headturn!=0) servo3.write(current_pos_headturn); // jlv modified variables
-      else servo3.write(90);
+      if (target_pos_headturn !=0)
+      {
+//        map(ch5, 0,255,0,180);
+        servo3.attach(GIMBLESP_PIN);     // attach center Servo for gimble
+        servo3.write(target_pos_headturn); // jlv modified variables
+      } 
+      else servo3.detach();     // attach center Servo for gimble
+    }
+    else
+    {
+      servo1.detach();
+      servo2.detach();
+      servo3.detach(); 
+      return;
     }
     #ifdef SHADOW_DEBUG_GIMBLE
       output += "\tCH3: ";
@@ -560,9 +555,23 @@ void DomeDrive()
       output += "\tServo3: ";
       output += current_pos_headturn;
     #endif
+    #ifdef SHADOW_DEBUG_GIMBLETURN
+      output += "\tCH5: ";
+      output += ch5;
+      output += "\tTargetPOS: ";
+      output += target_pos_headturn;
+    #endif
     previousDomeMillis = millis();
   }
-  else return;
+  else
+  {
+    servo1.detach();
+    servo2.detach();
+    servo3.detach(); 
+    return;
+  }
+  return;
+
 }
 
 
@@ -867,10 +876,10 @@ void GetJoyStickValues()
     }
     else
     {
-       ch1 = 130;
-       ch2 = 130;
-       ch3 = 130;
-       ch4 = 130;
+       ch1 = 130; // send middle position value without fluctuating for forward and backwards
+       ch2 = 130; // send middle position value without fluctuating for swing left and right
+       ch3 = 0;   // send nothing value when the head is not being moved around
+       ch4 = 0;   // send nothing value when 
        ch5 = 0;
        ch6 = 130;
     }
