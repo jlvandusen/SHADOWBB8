@@ -6,7 +6,7 @@ Further work will entail:
 - Add Disco Droid control mappings to button combinations for sounds
 - Add Ps3 sixaxis controller configuration
 - Add PS4 sixaxis controller configuration
-- add mp3trigger controls
+- Add mp3trigger controls
 - Add Dome Automation routines
 
 NOTE: This is my personal code for S.H.A.D.O.W. (Small Handheld Arduino Droid Operating Wand) that I use to control my BB8 droid.
@@ -25,7 +25,9 @@ learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
 - Pair of PS3 Move Navigation controllers (recommended)
 - Bluetooth connected Phone (Limited Controls)
 - Disco Droid Support (Audio sound support)
-//      - JLV: Please do not use Digital pin 7 as input or output because is used in the comunication with MAX3421E
-//      - JLV: on the arduino mega ADK model. 
-//      - JLV: Digital: 7 (RST), 50 (MISO), 51 (MOSI), 52 (SCK).
-//      - JLV: https://www.arduino.cc/en/Main/ArduinoBoardMegaADK
+
+Please do not use Digital pin 7 as input or output because is used in the comunication with MAX3421E
+on the arduino mega ADK model. 
+
+Digital: 7 (RST), 50 (MISO), 51 (MOSI), 52 (SCK).
+https://www.arduino.cc/en/Main/ArduinoBoardMegaADK
