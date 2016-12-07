@@ -10,9 +10,10 @@ Further work will entail:
 5. Add Dome Automation routines
 
 NOTE: This is my personal code for S.H.A.D.O.W. (Small Handheld Arduino Droid Operating Wand) that I use to control my BB8 droid.
-//   Note: You will need a Arduino Mega 1280/2560 to run this sketch,
-//   as a normal Arduino (Uno, Duemilanove etc.) doesn't have enough SRAM and FLASH
-//   The arduino mega 2560 adk is the preferred method as it will involve less hardware
+
+Note: You will need a Arduino Mega 1280/2560 to run this sketch,
+as a normal Arduino (Uno, Duemilanove etc.) doesn't have enough SRAM and FLASH
+The arduino mega 2560 adk is the preferred method as it will involve less hardware
 //
 //   This is written to be a UNIVERSAL Sketch - supporting multiple controller options
 //   for the James Bruton BB8 build version 3.. in replacement of his custom controller
