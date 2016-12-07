@@ -1,9 +1,10 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 12/3/2016
+//                          Last Revised Date: 12/07/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
+//     learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
 // =======================================================================================
 //
 //         This program is free software: you can redistribute it and/or modify it .
@@ -19,14 +20,16 @@
 //   This is written to be a UNIVERSAL Sketch - supporting multiple controller options
 //   for the James Bruton BB8 build version 3.. in replacement of his custom controller
 //   see: www.youtube.com/user/jamesbruton and www.xrobots.co.uk
+//   learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
 //
 //      - Single PS3 Move Navigation
 //      - Pair of PS3 Move Navigation controllers (recommended)
 //      - Bluetooth connected Phone (Limited Controls)
 //      - Disco Droid Support (Audio sound support)
-//      - Digital: 7 (RST), 50 (MISO), 51 (MOSI), 52 (SCK).
-//      - NB:Please do not use Digital pin 7 as input or output because is used in the comunication with MAX3421E 
-//      - https://www.arduino.cc/en/Main/ArduinoBoardMegaADK
+//      - JLV: Please do not use Digital pin 7 as input or output because is used in the comunication with MAX3421E
+//      - JLV: on the arduino mega ADK model. 
+//      - JLV: Digital: 7 (RST), 50 (MISO), 51 (MOSI), 52 (SCK).
+//      - JLV: https://www.arduino.cc/en/Main/ArduinoBoardMegaADK
 //
 // =======================================================================================
 
@@ -47,7 +50,7 @@
 
 #define GIMBLELT_PIN     44 // Sets the gimble left/right pins for PWM
 #define GIMBLERT_PIN     45
-#define GIMBLESP_PIN     7 // Sets the gimble spin motor for PWM
+#define GIMBLESP_PIN     8 // Sets the gimble spin motor for PWM
 
 #define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM
 #define MAINREV_PIN       3
@@ -100,7 +103,7 @@
 #include <I2Cdev.h>
 #include <MPU6050.h>  // utilize raw communications to MPU rather than DMP
 #include <Wire.h>
-#include <PID_v1.h>  //PID loop from http://playground.arduino.cc/Code/PIDLibrary
+#include <PID_v1.h> //PID loop from http://playground.arduino.cc/Code/PIDLibrary
 
 String PS3MoveNavigatonPrimaryMAC = "00:06:F5:64:60:3E";
 //String PS3MoveNavigatonPrimaryMAC = "00:06:F7:8F:36:7B"; //If using multiple controlers, designate a primary 00:06:F5:5A:BD:17
@@ -154,10 +157,14 @@ String output = "";
 byte vol = 30; // 0 = full volume, 255 off
 boolean isStickEnabled = true;
 boolean isMPUENABLED = false; 
+byte isMotorStopped = true;
+byte isPotCheck = false;        // initial Potentiometer check where it is in space to find center of level plane for compensation.
+byte isMPUCheck = false;        // initial IMU check where it is in space to find center of level plane for compensation.
+int startpot,startroll,startpitch;
+int potdeviation,imudeviation;              // Initiate startpot value and the deviation amount.
 byte isAutomateDomeOn = false;
 byte isDriveEnabled = false;
 byte isFootMotorStopped = true;
-byte isMotorStopped = true;
 int DriveSpeed = 0;
 unsigned long automateMillis = 0;
 byte automateDelay = random(5,30);// set this to min and max seconds between sounds
@@ -400,10 +407,9 @@ void loop() // LOOP through functions from highest to lowest priority.
     }
     else
     {
-//      testController();
-//      spinFlywheel();       // Spins the flywheels for stationary turn
       GetJoyStickValues();  // this configures the move controllers to update ch1-6 with values
       DomeDrive();          // controls the gimble for left, right and forward/backward movement
+      spinFlywheel();       // Spins the flywheels for stationary turn
       MotorDrive();         // Main Drive and Gyro swing for turning
       toggleSettings();     // Listens for key combinations from the move controllers
     }
@@ -418,12 +424,34 @@ void getMPU()
 {
   if (isMPUENABLED)
   {
-    if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
+    float timeStep = 0.01;
+    if (!isMPUCheck)
     {
+        Vector norm = mpu.readNormalizeGyro();    // Read normalized values
+        pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
+        roll = roll + norm.XAxis * timeStep;      // Calculate Roll
+        startpitch = pitch + norm.YAxis * timeStep;    // Store Initial pitch
+        startroll = roll + norm.XAxis * timeStep;      // Store Initial roll
+        #ifdef SHADOW_DEBUG_MPU
+          output += "\tPitch: ";
+          output += pitch;
+          output += "\tStartPitch: ";
+          output += startpitch;
+          output += "\tRoll: ";
+          output += roll;
+          output += "\tStartRoll: ";
+          output += startroll;
+        #endif 
+        isMPUCheck = true;
+    }
+    else
+    {
+//    if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
+//    {
       unsigned long currentmpuMillis = millis(); // grab current time 
       if ((unsigned long)(currentmpuMillis - previousmpuMillis) >= mpuinterval) // check if "interval" time has passed (1000 milliseconds)
       {
-        float timeStep = 0.01;
+//        float timeStep = 0.01; // commented and move to beginning
         Vector norm = mpu.readNormalizeGyro();    // Read normalized values
         
         pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
@@ -434,13 +462,18 @@ void getMPU()
         #ifdef SHADOW_DEBUG_MPU
           output += "\tPitch: ";
           output += pitch;
+          output += "\tStartPitch: ";
+          output += startpitch;
           output += "\tRoll: ";
           output += roll;
+          output += "\tStartRoll: ";
+          output += startroll;
         #endif 
         previousmpuMillis = ((timeStep*1000) - (millis() - timer));    // Wait to full timeStep period
       } 
+//    }
+//    else return;
     }
-    else return;
   }
 }
 
@@ -450,15 +483,46 @@ void getMPU()
 
 void getPOT()
 {
-  if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
+  if (!isPotCheck)
   {
-    pot = analogRead(A0);   // read trousers pot
+    startpot = analogRead(A0);   // read initial trousers pot and set as center point
+    if (startpot > 512)
+    {
+      potdeviation = startpot - 512;
+    }
+    else potdeviation = 512 - startpot;
     #ifdef SHADOW_DEBUG_POT
-      output += "\tPOT: ";
-      output += pot;
-    #endif 
+      output += "\tstartpot: ";
+      output += startpot;
+      output += "\tpotdeviation: ";
+      output += potdeviation;
+    #endif
+    isPotCheck = true;
   }
-  else return;
+  else
+  {
+//    if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
+//    {
+      pot = analogRead(A0);   // read trousers pot
+      if (startpot > 512)
+      {
+        pot = pot-potdeviation;
+      }
+      else
+      {
+        pot = pot+potdeviation;
+      }
+
+      #ifdef SHADOW_DEBUG_POT
+        output += "\tPOT: ";
+        output += pot;
+        output += "\tpotdeviation: ";
+        output += potdeviation;
+      #endif 
+//    }
+//    else return;
+  }
+
 }
 
 // =======================================================================================
@@ -628,7 +692,7 @@ void MotorDrive()
 // =====================================================================================================================
 //                          TROUSER Stability PID Controls (Left/Right)
 // =====================================================================================================================
-      target_pos_trousers = map(ch2, 0,255,-80,90); //255 get left and right off PS3 controller and -40 and 40;  (Happy Medium was 60)
+      target_pos_trousers = map(ch2, 0,255,-90,90); //255 get left and right off PS3 controller and -40 and 40;  (Happy Medium was 60)
       easing_trousers = 80;          //modify this value for sensitivity
       easing_trousers /= 1000;
       diff_trousers = target_pos_trousers - current_pos_trousers;    // Work out the required travel.
@@ -637,44 +701,47 @@ void MotorDrive()
         current_pos_trousers += diff_trousers * easing_trousers;     // Avoid any strange zero condition
       }    
       Setpoint2 = current_pos_trousers;    
-      Input2 = (roll*-1)+bodge;   // ****add a bit to the IMU to get the real middle point    
-      Setpoint2 = constrain(Setpoint2, -80,90);    // -40 40  (Happy Medium was 60)
+      Input2 = (roll*-1)+bodge;   // ****add a bit to the IMU to get the real middle point but read in how far off center we are either left or right.
+      Setpoint2 = constrain(Setpoint2, -90,90);    // -40 40  (Happy Medium was 60)
       
       PID2.Compute();       // figure out PID for Joystick input (target_pos_trousers)    
       
       Setpoint1 = Output2;  // send the output2 from the joystick (after PID) as SetPoint1    
       pot = map(pot, 0, 1024, -255,255);
-      pot = pot-23; // 9  had to compensate for 570 center point on the POTs so subtracted -23 which brings it to 1 
+//      pot = pot-23; // 9  had to compensate for 570 center point on the POTs so subtracted -23 which brings it to 1 
       Input1  = pot;
-      Input1 = constrain(Input1,-80,90); // -40 40 (Happy Medium was 60)
-      Setpoint1 = constrain(Setpoint1, -80,90); // -40 40  (Happy Medium was 60)
-      Setpoint1 = map(Setpoint1,90,-80,-80,90); // 40 -40 -40 40 (Happy Medium was 60)
+      Input1 = constrain(Input1,-90,90); // -40 40 (Happy Medium was 60)
+      Setpoint1 = constrain(Setpoint1, -90,90); // -40 40  (Happy Medium was 60)
+      Setpoint1 = map(Setpoint1,90,-90,-90,90); // 40 -40 -40 40 (Happy Medium was 60)
       PID1.Compute(); // determine PID from values provided by the MPU roll and combine with the potentiometer
 
 // =====================================================================================================================
 //                      gyro/flywheel swing motor
 // =====================================================================================================================
       
-      if (Output1 < -5)            // decide which way to turn the wheels based on deadSpot variable - was 0 (-10)
+      if (Output1 < 0)            // decide which way to turn the wheels based on deadSpot variable - was 0 (-10) then it was -5
         {
         Output1a = abs(Output1);
+//          digitalWrite(31, HIGH);
           analogWrite(SWINGLT_PIN, Output1a); // set PWM pins in direction of the Output1
           analogWrite(SWINGRT_PIN, 0);
         }
-      else if (Output1 >= 5)      // decide which way to turn the wheels based on deadSpot variable - was 0 (20)
+      else if (Output1 >= 0)      // decide which way to turn the wheels based on deadSpot variable - was 0 (20) then it was 5
         { 
         Output1a = abs(Output1);
+//          digitalWrite(31, HIGH);
           analogWrite(SWINGRT_PIN, Output1a); // set PWM pins in the direction of the Output1
           analogWrite(SWINGLT_PIN, 0);
         } 
       else
-        {       
-//          analogWrite(SWINGLT_PIN, 0); // set PWM pins to 0 and send no power to the drives
-//          analogWrite(SWINGRT_PIN, 0); 
+        {
+//          digitalWrite(31, LOW);    
         }
 // =====================================================================================================================
 //                          MAIN Drive Stability PID Controls (fwd/back)
 // =====================================================================================================================
+        // target_pos_drive is the joystick input
+        // current_pos_drive is what needs to match target_pos_drive
         target_pos_drive = map(ch1, 0,255,65,-65);
         
         easing_drive = 80;          //modify this value for sensitivity was 200
@@ -700,48 +767,42 @@ void MotorDrive()
         if (Output3 <= -5)                               // decide which way to turn the wheels based on deadSpot variable (was 1)
         {
         Output3a = abs(Output3);
+        digitalWrite(31, HIGH);
           analogWrite(MAINFWD_PIN, Output3a);           // set PWM pins 
           analogWrite(MAINREV_PIN, 0);
         }
         else if (Output3 > 5)                           // decide which way to turn the wheels based on deadSpot variable (was 1)
         { 
         Output3a = abs(Output3);
+        digitalWrite(31, HIGH);
           analogWrite(MAINREV_PIN, Output3a);  
           analogWrite(MAINFWD_PIN, 0);
         }
-        else
-        {
-//          analogWrite(MAINREV_PIN, 0);  
-//          analogWrite(MAINFWD_PIN, 0);
-        }
-        #ifdef SHADOW_DEBUG_MAINDRIVES
-          output += "\tPot: ";
-          output += pot;
-          output += "/ Input1(pot): ";
-          output += Input1;
-          output += "/ SetPoint1(JoyX): ";
-          output += Setpoint1;
-          output += "\tOutput1a(SwayAbsolute): ";
-          output += Output1a;
-          output += "\tOutput3a(Fwd/bkd): ";
-          output += Output3a;
-        #endif
+        else  digitalWrite(31, LOW);
     }
-  }
-  else
+    else
     {
-//      analogWrite(MAINFWD_PIN, 0); // set PWM pins to zero
-//      analogWrite(MAINREV_PIN, 0);
-//      analogWrite(SWINGLT_PIN, 0); // set PWM pins to zero
-//      analogWrite(SWINGRT_PIN, 0);
-      
+//      digitalWrite(31, LOW); 
       isMotorStopped = true;
-      
-//      #ifdef SHADOW_VERBOSE
-//              output += "\r\n***All Motors STOPPED***\r\n";
-//      #endif
+      return;
     }
-  return;
+    #ifdef SHADOW_DEBUG_MAINDRIVES
+      output += "\tPot: ";
+      output += pot;
+      output += "/ Input1(pot): ";
+      output += Input1;
+      output += "/ SetPoint1(JoyX/ch2): ";
+      output += Setpoint1;
+      output += "\tOutput1a(SwayAbsolute): ";
+      output += Output1a;
+      output += "\tOutput3a(Fwd/bkd): ";
+      output += Output3a;
+      output += "/ SetPoint3(current): ";
+      output += Setpoint3;
+      output += "/ target_pos_drive-JoyY/ch1): ";
+      output += target_pos_drive;
+    #endif
+  }
 }
 
 void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
