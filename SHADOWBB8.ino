@@ -486,7 +486,7 @@ void getPOT()
   }
   else
   {
-    if (AutoCentering) // check to see if auto centering is enabled L2/R2 + Cross
+    if (isAutoCentering) // check to see if auto centering is enabled L2/R2 + Cross
     {
       pot = analogRead(A0);   // read trousers pot
       if (startpot > 512)
