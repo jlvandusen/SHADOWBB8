@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 12/07/2016
+//                          Last Revised Date: 12/11/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 //     learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
@@ -123,11 +123,7 @@ Servo servo3;
 int varServo1; // Left servo for gimble arm movement
 int varServo2; // Right servo for gimble arm movement
 
-int turnnum = 0;      // what is the X left and right of the joysticks.
-int mainDrive = 0;    // what is the Y forward and back of the joysticks.
-
 long previousDomeMillis = millis();
-long previousDriveMillis = millis();
 long previousMainDriveMillis = millis();
 long currentMillis = millis();
 int serialLatency = 25;   //This is a delay factor in ms to prevent queueing of the Serial data.
@@ -158,19 +154,16 @@ byte vol = 30; // 0 = full volume, 255 off
 boolean isStickEnabled = true;
 boolean isMPUENABLED = false; 
 byte isMotorStopped = true;
+byte isAutoCentering = true;
 byte isPotCheck = false;        // initial Potentiometer check where it is in space to find center of level plane for compensation.
 byte isMPUCheck = false;        // initial IMU check where it is in space to find center of level plane for compensation.
 int startpot,startroll,startpitch;
 int potdeviation,imudeviation;              // Initiate startpot value and the deviation amount.
 byte isAutomateDomeOn = false;
 byte isDriveEnabled = false;
-byte isFootMotorStopped = true;
-int DriveSpeed = 0;
 unsigned long automateMillis = 0;
 byte automateDelay = random(5,30);// set this to min and max seconds between sounds
-int turnDirection = 20;
 byte action = 0;
-unsigned long DriveMillis = 0;
 
 // ---------------------------------------------------------------------------------------
 //               MPU Configuration
@@ -186,9 +179,12 @@ float yaw = 0;
 unsigned long mpuinterval=1000; // the time we need to wait (1sec)
 unsigned long previousmpuMillis=0;
 
-float bodge = 7;
+// ---------------------------------------------------------------------------------------
+//               POT Configuration
+// ---------------------------------------------------------------------------------------
 
 int pot;
+float bodge = 7;
 
 // ---------------------------------------------------------------------------------------
 //               PID Configuration
@@ -244,17 +240,6 @@ int diff_head1; // difference of position
 double easing_head1;
 
 int ch1,ch2,ch3,ch3a,ch4,ch4a,ch5,ch5a,ch6,ch6a;
-
-// ---------------------------------------------------------------------------------------
-//                       INTERRUPT DETECTION ROUTINE
-// ---------------------------------------------------------------------------------------
-
-// DMP Values required - Comment to use RAW below ----------------------------------------
-//volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
-//void dmpDataReady() 
-//{
-//    mpuInterrupt = true;
-//}
 
 // ---------------------------------------------------------------------------------------
 //                       SETUP Definitions
@@ -336,7 +321,7 @@ void setup()
 // *************************** Gimble setup *********************************************
    
 //  SERVO 3 (Gimble spin)
-//  Signal = Pin 8 on arduino
+//  Signal = Pin 7 on arduino
     servo3.attach(GIMBLESP_PIN);     // attach center Servo for gimble
 
 //  SERVO 1/2 (Gimble Head Movement)
@@ -501,8 +486,8 @@ void getPOT()
   }
   else
   {
-//    if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
-//    {
+    if (AutoCentering) // check to see if auto centering is enabled L2/R2 + Cross
+    {
       pot = analogRead(A0);   // read trousers pot
       if (startpot > 512)
       {
@@ -512,17 +497,15 @@ void getPOT()
       {
         pot = pot+potdeviation;
       }
-
-      #ifdef SHADOW_DEBUG_POT
-        output += "\tPOT: ";
-        output += pot;
-        output += "\tpotdeviation: ";
-        output += potdeviation;
-      #endif 
-//    }
-//    else return;
+    }
+    else pot = analogRead(A0);   // read trousers pot
   }
-
+  #ifdef SHADOW_DEBUG_POT
+    output += "\tPOT: ";
+    output += pot;
+    output += "\tpotdeviation: ";
+    output += potdeviation;
+  #endif 
 }
 
 // =======================================================================================
@@ -846,16 +829,18 @@ void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
         if(isAutomateDomeOn)
         {
           #ifdef SHADOW_DEBUG
-            output += "Disabling the Dome Automation\r\n";        
+            output += "Disabling the Auto Centering\r\n";        
           #endif
           isAutomateDomeOn = false;
+          isAutoCentering = false;
         }
         else
         {
           #ifdef SHADOW_DEBUG
-            output += "Enabling the Dome Automation\r\n";
+            output += "Enabling the Auto Centering\r\n";
           #endif
           isAutomateDomeOn = true;
+          isAutoCentering = true;
         }
         action = 0;
     }
