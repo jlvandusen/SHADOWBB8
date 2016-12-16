@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 12/11/2016
+//                          Last Revised Date: 12/16/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 //     learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
@@ -45,14 +45,14 @@
 
 //#define FLYWHEELLT_PIN   42 // Sets the flywheel pins for PWM 
 //#define FLYWHEELRT_PIN   44
-#define FLYWHEELLT_PIN   47 // Sets the flywheel pins for PWM 
-#define FLYWHEELRT_PIN   48
+#define FLYWHEELLT_PIN   48 // Sets the flywheel pins for PWM 
+#define FLYWHEELRT_PIN   49
 
 #define GIMBLELT_PIN     44 // Sets the gimble left/right pins for PWM
 #define GIMBLERT_PIN     45
-#define GIMBLESP_PIN     8 // Sets the gimble spin motor for PWM
+#define GIMBLESP_PIN     46 // Sets the gimble spin motor for PWM
 
-#define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM
+#define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM (
 #define MAINREV_PIN       3
 
 #define SWINGLT_PIN       5 // Sets the gyro/flywheel swing motor for PWM
@@ -394,7 +394,7 @@ void loop() // LOOP through functions from highest to lowest priority.
     {
       GetJoyStickValues();  // this configures the move controllers to update ch1-6 with values
       DomeDrive();          // controls the gimble for left, right and forward/backward movement
-      spinFlywheel();       // Spins the flywheels for stationary turn
+//      spinFlywheel();       // Spins the flywheels for stationary turn
       MotorDrive();         // Main Drive and Gyro swing for turning
       toggleSettings();     // Listens for key combinations from the move controllers
     }
@@ -431,8 +431,6 @@ void getMPU()
     }
     else
     {
-//    if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected) 
-//    {
       unsigned long currentmpuMillis = millis(); // grab current time 
       if ((unsigned long)(currentmpuMillis - previousmpuMillis) >= mpuinterval) // check if "interval" time has passed (1000 milliseconds)
       {
@@ -460,6 +458,7 @@ void getMPU()
 //    else return;
     }
   }
+  else return;  // isMPUENABLED is false...
 }
 
 // =======================================================================================
@@ -468,7 +467,7 @@ void getMPU()
 
 void getPOT()
 {
-  if (!isPotCheck)
+  if (!isPotCheck)  // check to see if the droid was turned on... Assume GYRO is at rest and we are level.
   {
     startpot = analogRead(A0);   // read initial trousers pot and set as center point
     if (startpot > 512)
@@ -518,7 +517,6 @@ void DomeDrive()
   {
     readUSB();  // verify PS3 navigation controller is still alive.
     if ((millis() - previousDomeMillis) < (2 * serialLatency) ) return;
-//    ch3a=map(ch3,50,590,0,180); // jlv modified variables
     ch3a=map(ch3,0,255,0,180);
     ch3a = ch3a-(pitch*4.5);
     ch3a=constrain(ch3a,0,180);
@@ -528,8 +526,7 @@ void DomeDrive()
     easing_head1 = 100;          //modify this value for sensitivity
     easing_head1 /= 1000;
     
-    // Work out the required travel.
-    diff_head1 = target_pos_head1 - current_pos_head1;    
+    diff_head1 = target_pos_head1 - current_pos_head1;    // Work out the required travel.
     
     // Avoid any strange zero condition
     if( diff_head1 != 0.00 ) {
@@ -548,8 +545,6 @@ void DomeDrive()
     
     varServo1 = constrain(varServo1,10,170);
     varServo2 = constrain(varServo2,10,170);
-
-    target_pos_headturn = map(ch5, 0,255,0,180);        // read in the values of the controller using R2 of left joystick + left/right of the right joystick
      
     if (!isDriveEnabled || ch4 == 0 || ch3 == 0)        // enable pin is off and left joystick is not moving
     {
@@ -572,20 +567,30 @@ void DomeDrive()
       servo2.attach(GIMBLELT_PIN);      // Attach Right Servo for gimble
       servo1.write(varServo1);          // set servos to stick positions
       servo2.write(varServo2); 
-//      servo3.writeMicroseconds(current_pos_headturn); 
-      if (target_pos_headturn !=0)
+      
+      //********************* turn head***************************
+      
+      target_pos_headturn = map(ch5, 0,255,600,2500); // the ps3 controller extreme left is 0 and right is 255
+      
+      easing_headturn = 50;          //modify this value for sensitivity
+      easing_headturn /= 1000;
+      
+      // Work out the required travel.
+      diff_headturn = target_pos_headturn - current_pos_headturn;    
+      
+      // Avoid any strange zero condition
+      if( diff_headturn != 0.00 ) 
       {
-//        map(ch5, 0,255,0,180);
-        servo3.attach(GIMBLESP_PIN);     // attach center Servo for gimble
-        servo3.write(target_pos_headturn); // jlv modified variables
-      } 
-      else servo3.detach();     // attach center Servo for gimble
+        current_pos_headturn += diff_headturn * easing_headturn;
+      }
+      servo3.writeMicroseconds(current_pos_headturn);
+//      servo3.write(current_pos_headturn);
     }
     else
     {
       servo1.detach();
       servo2.detach();
-      servo3.detach(); 
+      servo3.detach();
       return;
     }
     #ifdef SHADOW_DEBUG_GIMBLE
@@ -607,6 +612,8 @@ void DomeDrive()
       output += ch5;
       output += "\tTargetPOS: ";
       output += target_pos_headturn;
+      output += "\tCurrentPOS: ";
+      output += current_pos_headturn;
     #endif
     previousDomeMillis = millis();
   }
@@ -614,7 +621,6 @@ void DomeDrive()
   {
     servo1.detach();
     servo2.detach();
-    servo3.detach(); 
     return;
   }
   return;
@@ -887,6 +893,7 @@ void GetJoyStickValues()
   {
     if (PS3Nav->getAnalogHat(LeftHatX) > 137 || PS3Nav->getAnalogHat(LeftHatX) < 117 || PS3Nav->getAnalogHat(LeftHatY) > 137 || PS3Nav->getAnalogHat(LeftHatY) < 117 || PS3Nav2->getAnalogHat(LeftHatX) > 137 || PS3Nav2->getAnalogHat(LeftHatX) < 117 || PS3Nav2->getAnalogHat(LeftHatY) > 137 || PS3Nav2->getAnalogHat(LeftHatY) < 117) 
     {
+
       ch1 = PS3Nav->getAnalogHat(LeftHatY);
       if (!PS3Nav2->getButtonPress(L2) && PS3Nav->getAnalogHat(LeftHatX))
       {
@@ -901,10 +908,10 @@ void GetJoyStickValues()
       {
         ch5 = PS3Nav2->getAnalogHat(LeftHatX); // ch5 = head spin
       }
-      if (PS3Nav2->getButtonPress(L2) && PS3Nav->getAnalogHat(LeftHatX))
-      {
-        ch6 = PS3Nav->getAnalogHat(LeftHatX); // ch6 = flywheel spin
-      }
+//      if (PS3Nav2->getButtonPress(L2) && PS3Nav->getAnalogHat(LeftHatX))
+//      {
+//        ch6 = PS3Nav->getAnalogHat(LeftHatX); // ch6 = flywheel spin
+//      }
       #ifdef SHADOW_DEBUG_JOY
         output += "\tCH1: ";
         output += ch1;
@@ -926,8 +933,8 @@ void GetJoyStickValues()
        ch2 = 130; // send middle position value without fluctuating for swing left and right
        ch3 = 0;   // send nothing value when the head is not being moved around
        ch4 = 0;   // send nothing value when 
-       ch5 = 0;
-       ch6 = 130;
+//       ch5 = 0;
+//       ch6 = 0;
     }
   }
   return;
