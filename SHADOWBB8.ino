@@ -32,7 +32,7 @@
 //      - JLV: https://www.arduino.cc/en/Main/ArduinoBoardMegaADK
 //
 //    The front of the droid body is the end that has the front wheel attached to the banana
-//    Looking down on the banana with the front wheel facing forward, left and right is indicated from this position.
+//    Looking down on the banana with the front guide wheel facing forward
 //
 // =======================================================================================
 
@@ -286,7 +286,7 @@ void setup()
       Serial.println("MPU6050 calibration completed");
       isMPUENABLED = true;
     }
-    servo3.write(90); // stop the head spinning
+
 
 // *************************** Sound Controller setup *********************************************
     
@@ -334,7 +334,10 @@ void setup()
 //  Signal = Pin 7 on arduino
     servo3.attach(GIMBLESP_PIN);     // attach center Servo for gimble
     
-
+    servo3.write(90);   // stop the head spinning
+    servo1.write(60);   // set servos to back/middle position
+    servo2.write(120);  // set servos to back/middle position
+    
 // *************************** Setup for Dome Communications ******************************
 //  Will need BT hardware to communicate to Disco Droid BB8 Sound controller in dome
 //  start the library, data details / name of serial port.
@@ -552,8 +555,9 @@ void DomeDrive()
      
     if (!isDriveEnabled)        // enable pin is off and left joystick is not moving
     {
-        servo1.write(120);    //set servos to back/middle position
+        servo1.write(120);      // set servos to back/middle position
         servo2.write(60);
+        servo3.write(90);       // stop the head spinning
     }
     else
     {
@@ -572,12 +576,13 @@ void DomeDrive()
       
       // Work out the required travel.
       diff_headturn = target_pos_headturn - current_pos_headturn;    
-      
+      servo3.write(90); // make sure its sitting still
       // Avoid any strange zero condition
       if( diff_headturn != 0.00 ) 
       {
         current_pos_headturn += diff_headturn * easing_headturn;
-        servo3.writeMicroseconds(current_pos_headturn);
+//        servo3.writeMicroseconds(current_pos_headturn);
+        servo3.write(current_pos_headturn);
       }
       else servo3.write(90);
 
@@ -709,7 +714,7 @@ void MotorDrive()
         // current_pos_drive is what needs to match target_pos_drive
         target_pos_drive = map(ch1, 0,255,65,-65);
         
-        easing_drive = 200;          //modify this value for sensitivity was 200
+        easing_drive = 1000;          //modify this value for sensitivity was 200
         easing_drive /= 1000;
         
         // Work out the required travel.
