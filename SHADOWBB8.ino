@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 12/16/2016
+//                          Last Revised Date: 12/23/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 //     learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
@@ -320,15 +320,15 @@ void setup()
     
 // *************************** Gimble setup *********************************************
    
-//  SERVO 3 (Gimble spin)
-//  Signal = Pin 7 on arduino
-    servo3.attach(GIMBLESP_PIN);     // attach center Servo for gimble
-
-//  SERVO 1/2 (Gimble Head Movement)
+//  SERVO 1/2 (control arm Head Movement)
 //  Left Servo signal = Pin 54 on arduino - Note switched it to 13 due to issues with pin 9
 //  Right Servo Signal = Pin 52 on arduino
-//    servo1.attach(GIMBLERT_PIN);     // Attach Left Servo for gimble
-//    servo2.attach(GIMBLELT_PIN);    // Attach Right Servo for gimble
+    servo1.attach(GIMBLERT_PIN);     // Attach Left Servo for gimble
+    servo2.attach(GIMBLELT_PIN);    // Attach Right Servo for gimble
+
+//  SERVO 3 (control arm spin)
+//  Signal = Pin 7 on arduino
+    servo3.attach(GIMBLESP_PIN);     // attach center Servo for gimble
     
 
 // *************************** Setup for Dome Communications ******************************
@@ -546,27 +546,18 @@ void DomeDrive()
     varServo1 = constrain(varServo1,10,170);
     varServo2 = constrain(varServo2,10,170);
      
-    if (!isDriveEnabled || ch4 == 0 || ch3 == 0)        // enable pin is off and left joystick is not moving
+    if (!isDriveEnabled)        // enable pin is off and left joystick is not moving
     {
-      if (servo1.read()!=60)
-      {
-        servo1.attach(GIMBLERT_PIN);      // Attach Left Servo for gimble
-        servo1.write(60);         // set servos to back/middle position
-      }
-      if (servo2.read()!=120) 
-      {
-        servo2.attach(GIMBLELT_PIN);      // Attach Left Servo for gimble
+        servo1.write(60);    //set servos to back/middle position
         servo2.write(120);
-      }
-      servo1.detach();
-      servo2.detach();
     }
-    else if (isDriveEnabled)    // enable pin is off
+    else
     {
-      servo1.attach(GIMBLERT_PIN);      // Attach Left Servo for gimble
-      servo2.attach(GIMBLELT_PIN);      // Attach Right Servo for gimble
-      servo1.write(varServo1);          // set servos to stick positions
-      servo2.write(varServo2); 
+      
+        servo1.write(varServo1);          // set servos to stick positions
+        servo2.write(varServo2);
+    }
+
       
       //********************* turn head***************************
       
@@ -585,14 +576,14 @@ void DomeDrive()
       }
       servo3.writeMicroseconds(current_pos_headturn);
 //      servo3.write(current_pos_headturn);
-    }
-    else
-    {
-      servo1.detach();
-      servo2.detach();
-      servo3.detach();
-      return;
-    }
+//    }
+//    else
+//    {
+//      servo1.detach();
+//      servo2.detach();
+//      servo3.detach();
+//      return;
+//    }
     #ifdef SHADOW_DEBUG_GIMBLE
       output += "\tCH3: ";
       output += ch3;
@@ -617,14 +608,6 @@ void DomeDrive()
     #endif
     previousDomeMillis = millis();
   }
-  else
-  {
-    servo1.detach();
-    servo2.detach();
-    return;
-  }
-  return;
-
 }
 
 
