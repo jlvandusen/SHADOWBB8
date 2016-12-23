@@ -569,7 +569,7 @@ void DomeDrive()
       
       //********************* turn head***************************
       
-      target_pos_headturn = map(ch5, 0,255,600,2500); // the ps3 controller extreme left is 0 and right is 255
+      target_pos_headturn = map(ch5, 0,255,0,180); // the ps3 controller extreme left is 0 and right is 255
       
       easing_headturn = 1000;          //modify this value for sensitivity (with PS3 BT we increased it from 50).
       easing_headturn /= 1000;
@@ -578,11 +578,10 @@ void DomeDrive()
       diff_headturn = target_pos_headturn - current_pos_headturn;    
       servo3.write(90); // make sure its sitting still
       // Avoid any strange zero condition
-      if( diff_headturn != 0.00 ) 
+      if( target_pos_headturn != 90) 
       {
-        current_pos_headturn += diff_headturn * easing_headturn;
-//        servo3.writeMicroseconds(current_pos_headturn);
         servo3.write(current_pos_headturn);
+//        servo3.writeMicroseconds(current_pos_headturn);
       }
       else servo3.write(90);
 
