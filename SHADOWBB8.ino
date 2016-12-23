@@ -31,6 +31,9 @@
 //      - JLV: Digital: 7 (RST), 50 (MISO), 51 (MOSI), 52 (SCK).
 //      - JLV: https://www.arduino.cc/en/Main/ArduinoBoardMegaADK
 //
+//    The front of the droid body is the end that has the front wheel attached to the banana
+//    Looking down on the banana with the front wheel facing forward, left and right is indicated from this position.
+//
 // =======================================================================================
 
 // ---------------------------------------------------------------------------------------
@@ -48,8 +51,8 @@
 #define FLYWHEELLT_PIN   48 // Sets the flywheel pins for PWM 
 #define FLYWHEELRT_PIN   49
 
-#define GIMBLELT_PIN     44 // Sets the gimble left/right pins for PWM
-#define GIMBLERT_PIN     45
+#define GIMBLELT_PIN     45 // Sets the gimble left/right pins for PWM 
+#define GIMBLERT_PIN     44
 #define GIMBLESP_PIN     46 // Sets the gimble spin motor for PWM
 
 #define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM (
@@ -65,8 +68,8 @@
 //#define FLYWHEELLT_PIN   9  // Sets the flywheel pins for PWM       
 //#define FLYWHEELRT_PIN   10
 //
-//#define GIMBLELT_PIN     6  // Sets the gimble left/right pins for PWM
-//#define GIMBLERT_PIN     7
+//#define GIMBLELT_PIN     7  // Sets the gimble left/right pins for PWM
+//#define GIMBLERT_PIN     6
 //#define GIMBLESP_PIN     8  // Sets the gimble spin motor for PWM
 //
 //#define MAINFWD_PIN      2 // Sets the forward/backward motor for PWM
@@ -283,6 +286,7 @@ void setup()
       Serial.println("MPU6050 calibration completed");
       isMPUENABLED = true;
     }
+    servo3.write(90); // stop the head spinning
 
 // *************************** Sound Controller setup *********************************************
     
@@ -523,7 +527,7 @@ void DomeDrive()
     
     target_pos_head1 = ch3a;
     
-    easing_head1 = 100;          //modify this value for sensitivity
+    easing_head1 = 1000;          //modify this value for sensitivity - changed from 100 to 1000 for BT PS3
     easing_head1 /= 1000;
     
     diff_head1 = target_pos_head1 - current_pos_head1;    // Work out the required travel.
@@ -548,8 +552,8 @@ void DomeDrive()
      
     if (!isDriveEnabled)        // enable pin is off and left joystick is not moving
     {
-        servo1.write(60);    //set servos to back/middle position
-        servo2.write(120);
+        servo1.write(120);    //set servos to back/middle position
+        servo2.write(60);
     }
     else
     {
@@ -563,7 +567,7 @@ void DomeDrive()
       
       target_pos_headturn = map(ch5, 0,255,600,2500); // the ps3 controller extreme left is 0 and right is 255
       
-      easing_headturn = 50;          //modify this value for sensitivity
+      easing_headturn = 1000;          //modify this value for sensitivity (with PS3 BT we increased it from 50).
       easing_headturn /= 1000;
       
       // Work out the required travel.
@@ -573,17 +577,10 @@ void DomeDrive()
       if( diff_headturn != 0.00 ) 
       {
         current_pos_headturn += diff_headturn * easing_headturn;
+        servo3.writeMicroseconds(current_pos_headturn);
       }
-      servo3.writeMicroseconds(current_pos_headturn);
-//      servo3.write(current_pos_headturn);
-//    }
-//    else
-//    {
-//      servo1.detach();
-//      servo2.detach();
-//      servo3.detach();
-//      return;
-//    }
+      else servo3.write(90);
+
     #ifdef SHADOW_DEBUG_GIMBLE
       output += "\tCH3: ";
       output += ch3;
@@ -665,7 +662,7 @@ void MotorDrive()
 //                          TROUSER Stability PID Controls (Left/Right)
 // =====================================================================================================================
       target_pos_trousers = map(ch2, 0,255,-90,90); //255 get left and right off PS3 controller and -40 and 40;  (Happy Medium was 60)
-      easing_trousers = 80;          //modify this value for sensitivity
+      easing_trousers = 1000;          //modify this value for sensitivity was 80 changed to 1000 for BT PS3
       easing_trousers /= 1000;
       diff_trousers = target_pos_trousers - current_pos_trousers;    // Work out the required travel.
       if( diff_trousers != 0.00 )
@@ -712,7 +709,7 @@ void MotorDrive()
         // current_pos_drive is what needs to match target_pos_drive
         target_pos_drive = map(ch1, 0,255,65,-65);
         
-        easing_drive = 80;          //modify this value for sensitivity was 200
+        easing_drive = 200;          //modify this value for sensitivity was 200
         easing_drive /= 1000;
         
         // Work out the required travel.
