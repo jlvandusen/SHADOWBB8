@@ -44,39 +44,37 @@
 // (prevents pin conflicts of 8-13 with shield)
 
 
-#define ENABLE_PIN       31 // Sets the enable pin throughout the code
-
-//#define FLYWHEELLT_PIN   42 // Sets the flywheel pins for PWM 
-//#define FLYWHEELRT_PIN   44
-#define FLYWHEELLT_PIN   48 // Sets the flywheel pins for PWM 
-#define FLYWHEELRT_PIN   49
-
-#define GIMBLELT_PIN     45 // Sets the gimble left/right pins for PWM 
-#define GIMBLERT_PIN     44
-#define GIMBLESP_PIN     46 // Sets the gimble spin motor for PWM
-
-#define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM (
-#define MAINREV_PIN       3
-
-#define SWINGLT_PIN       5 // Sets the gyro/flywheel swing motor for PWM
-#define SWINGRT_PIN       6
+//#define ENABLE_PIN       31 // Sets the enable pin throughout the code
+//
+//#define FLYWHEELLT_PIN   48 // Sets the flywheel pins for PWM 
+//#define FLYWHEELRT_PIN   49
+//
+//#define GIMBLELT_PIN     45 // Sets the gimble left/right pins for PWM 
+//#define GIMBLERT_PIN     44
+//#define GIMBLESP_PIN     46 // Sets the gimble spin motor for PWM
+//
+//#define MAINFWD_PIN       2 // Sets the forward/backward motor for PWM (
+//#define MAINREV_PIN       3
+//
+//#define SWINGLT_PIN       5 // Sets the gyro/flywheel swing motor for PWM
+//#define SWINGRT_PIN       6
 
 // Use the below settings for arduino mega ADK without USB shield
 // ---------------------------------------------------------------------------------------
-//#define ENABLE_PIN       31 // Sets the enable pin throughout the code
+#define ENABLE_PIN       31 // Sets the enable pin throughout the code
 
-//#define FLYWHEELLT_PIN   9  // Sets the flywheel pins for PWM       
-//#define FLYWHEELRT_PIN   10
-//
-//#define GIMBLELT_PIN     7  // Sets the gimble left/right pins for PWM
-//#define GIMBLERT_PIN     6
-//#define GIMBLESP_PIN     8  // Sets the gimble spin motor for PWM
-//
-//#define MAINFWD_PIN      2 // Sets the forward/backward motor for PWM
-//#define MAINREV_PIN      3
-//
-//#define SWINGLT_PIN      4 // Sets the gyro/flywheel swing motor for PWM
-//#define SWINGRT_PIN      5
+#define FLYWHEELLT_PIN   6  // Sets the flywheel pins for PWM       
+#define FLYWHEELRT_PIN   7
+
+#define GIMBLELT_PIN     10  // Sets the gimble left/right pins for PWM
+#define GIMBLERT_PIN     9
+#define GIMBLESP_PIN     8  // Sets the gimble spin motor for PWM
+
+#define MAINFWD_PIN      2 // Sets the forward/backward motor for PWM
+#define MAINREV_PIN      3
+
+#define SWINGLT_PIN      4 // Sets the gyro/flywheel swing motor for PWM
+#define SWINGRT_PIN      5
 
 
 //#define SHADOW_DEBUG            //uncomment this for console DEBUG output
