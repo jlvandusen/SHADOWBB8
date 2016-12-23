@@ -576,9 +576,9 @@ void DomeDrive()
       diff_headturn = target_pos_headturn - current_pos_headturn;    
       servo3.write(90); // make sure its sitting still
       // Avoid any strange zero condition
-      if( target_pos_headturn != 90) 
+      if( target_pos_headturn > 100 || target_pos_headturn < 80) 
       {
-        servo3.write(current_pos_headturn);
+        servo3.write(target_pos_headturn);
 //        servo3.writeMicroseconds(current_pos_headturn);
       }
       else servo3.write(90);
@@ -595,7 +595,7 @@ void DomeDrive()
       output += "\tServo2: ";
       output += varServo2;
       output += "\tServo3: ";
-      output += current_pos_headturn;
+      output += target_pos_headturn;
     #endif
     #ifdef SHADOW_DEBUG_GIMBLETURN
       output += "\tCH5: ";
@@ -751,6 +751,7 @@ void MotorDrive()
       isMotorStopped = true;
       return;
     }
+  }
     #ifdef SHADOW_DEBUG_MAINDRIVES
       output += "\tPot: ";
       output += pot;
@@ -767,7 +768,6 @@ void MotorDrive()
       output += "/ target_pos_drive-JoyY/ch1): ";
       output += target_pos_drive;
     #endif
-  }
 }
 
 void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
