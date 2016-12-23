@@ -673,14 +673,15 @@ void MotorDrive()
         current_pos_trousers += diff_trousers * easing_trousers;     // Avoid any strange zero condition
       }    
       Setpoint2 = current_pos_trousers;    
-      Input2 = (roll*-1)+bodge;   // ****add a bit to the IMU to get the real middle point but read in how far off center we are either left or right.
+//      Input2 = (roll*-1)+bodge;   // ****add a bit to the IMU to get the real middle point but read in how far off center we are either left or right.
+      Input2 = roll;  // Patrick had to remove -1 and because we set to 0 for roll and pitch we no longer need bodge
       Setpoint2 = constrain(Setpoint2, -90,90);    // -40 40  (Happy Medium was 60)
       
       PID2.Compute();       // figure out PID for Joystick input (target_pos_trousers)    
       
       Setpoint1 = Output2;  // send the output2 from the joystick (after PID) as SetPoint1    
       pot = map(pot, 0, 1024, -255,255);
-//      pot = pot-23; // 9  had to compensate for 570 center point on the POTs so subtracted -23 which brings it to 1 
+//      pot = pot-23; // 9  had to compensate for 570 center point on the POTs so subtracted -23 which brings it to 1 jlv This has been replaced with the "at ease" code in getPOT function.
       Input1  = pot;
       Input1 = constrain(Input1,-90,90); // -40 40 (Happy Medium was 60)
       Setpoint1 = constrain(Setpoint1, -90,90); // -40 40  (Happy Medium was 60)
@@ -694,21 +695,16 @@ void MotorDrive()
       if (Output1 < 0)            // decide which way to turn the wheels based on deadSpot variable - was 0 (-10) then it was -5
         {
         Output1a = abs(Output1);
-//          digitalWrite(31, HIGH);
           analogWrite(SWINGLT_PIN, Output1a); // set PWM pins in direction of the Output1
           analogWrite(SWINGRT_PIN, 0);
         }
       else if (Output1 >= 0)      // decide which way to turn the wheels based on deadSpot variable - was 0 (20) then it was 5
         { 
         Output1a = abs(Output1);
-//          digitalWrite(31, HIGH);
           analogWrite(SWINGRT_PIN, Output1a); // set PWM pins in the direction of the Output1
           analogWrite(SWINGLT_PIN, 0);
         } 
-      else
-        {
-//          digitalWrite(31, LOW);    
-        }
+
 // =====================================================================================================================
 //                          MAIN Drive Stability PID Controls (fwd/back)
 // =====================================================================================================================
@@ -739,22 +735,20 @@ void MotorDrive()
         if (Output3 <= -5)                               // decide which way to turn the wheels based on deadSpot variable (was 1)
         {
         Output3a = abs(Output3);
-        digitalWrite(31, HIGH);
+          isMotorStopped = false;
           analogWrite(MAINFWD_PIN, Output3a);           // set PWM pins 
           analogWrite(MAINREV_PIN, 0);
         }
         else if (Output3 > 5)                           // decide which way to turn the wheels based on deadSpot variable (was 1)
         { 
         Output3a = abs(Output3);
-        digitalWrite(31, HIGH);
+          isMotorStopped = true; 
           analogWrite(MAINREV_PIN, Output3a);  
           analogWrite(MAINFWD_PIN, 0);
         }
-        else  digitalWrite(31, LOW);
     }
     else
     {
-//      digitalWrite(31, LOW); 
       isMotorStopped = true;
       return;
     }
@@ -838,15 +832,16 @@ void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
         if(isDriveEnabled)
         {
           #ifdef SHADOW_DEBUG
-            output += "Disabling the Drives\r\n";        
+            output += "Disabling the Motor Drives\r\n";        
           #endif
           isDriveEnabled = false;
           digitalWrite(31, LOW);
+          isMotorStopped = true;
         }
         else
         {
           #ifdef SHADOW_DEBUG
-            output += "Enabling the Drives\r\n";
+            output += "Enabling the Motor Drives\r\n";
           #endif
           isDriveEnabled = true;
           digitalWrite(31, HIGH);
@@ -891,10 +886,10 @@ void GetJoyStickValues()
       {
         ch5 = PS3Nav2->getAnalogHat(LeftHatX); // ch5 = head spin
       }
-//      if (PS3Nav2->getButtonPress(L2) && PS3Nav->getAnalogHat(LeftHatX))
-//      {
-//        ch6 = PS3Nav->getAnalogHat(LeftHatX); // ch6 = flywheel spin
-//      }
+      if (PS3Nav2->getButtonPress(L2) && PS3Nav->getAnalogHat(LeftHatX))
+      {
+        ch6 = PS3Nav->getAnalogHat(LeftHatX); // ch6 = flywheel spin
+      }
       #ifdef SHADOW_DEBUG_JOY
         output += "\tCH1: ";
         output += ch1;
@@ -912,12 +907,12 @@ void GetJoyStickValues()
     }
     else
     {
-       ch1 = 130; // send middle position value without fluctuating for forward and backwards
-       ch2 = 130; // send middle position value without fluctuating for swing left and right
-       ch3 = 0;   // send nothing value when the head is not being moved around
-       ch4 = 0;   // send nothing value when 
-//       ch5 = 0;
-//       ch6 = 0;
+       ch1 = 127; // send middle position value without fluctuating for forward and backwards
+       ch2 = 127; // send middle position value without fluctuating for swing left and right
+       ch3 = 127;   // send nothing value when the head is not being moved around
+       ch4 = 127;   // send nothing value when 
+       ch5 = 127;
+       ch6 = 127;
     }
   }
   return;
