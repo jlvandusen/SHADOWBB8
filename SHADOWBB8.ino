@@ -578,7 +578,7 @@ void DomeDrive()
       // Avoid any strange zero condition
       if( target_pos_headturn > 100 || target_pos_headturn < 80) 
       {
-        servo3.write(target_pos_headturn);
+        servo3.writeMicroseconds(target_pos_headturn);
 //        servo3.writeMicroseconds(current_pos_headturn);
       }
       else servo3.write(90);
@@ -694,14 +694,14 @@ void MotorDrive()
       if (Output1 < 0)            // decide which way to turn the wheels based on deadSpot variable - was 0 (-10) then it was -5
         {
         Output1a = abs(Output1);
-          analogWrite(SWINGLT_PIN, Output1a); // set PWM pins in direction of the Output1
-          analogWrite(SWINGRT_PIN, 0);
+          analogWrite(SWINGLT_PIN, 0); // set PWM pins in direction of the Output1
+          analogWrite(SWINGRT_PIN, Output1a);
         }
       else if (Output1 >= 0)      // decide which way to turn the wheels based on deadSpot variable - was 0 (20) then it was 5
         { 
         Output1a = abs(Output1);
-          analogWrite(SWINGRT_PIN, Output1a); // set PWM pins in the direction of the Output1
-          analogWrite(SWINGLT_PIN, 0);
+          analogWrite(SWINGRT_PIN, 0); // set PWM pins in the direction of the Output1
+          analogWrite(SWINGLT_PIN, Output1a);
         } 
 
 // =====================================================================================================================
@@ -741,7 +741,7 @@ void MotorDrive()
         else if (Output3 > 5)                           // decide which way to turn the wheels based on deadSpot variable (was 1)
         { 
         Output3a = abs(Output3);
-          isMotorStopped = true; 
+          isMotorStopped = false; 
           analogWrite(MAINREV_PIN, Output3a);  
           analogWrite(MAINFWD_PIN, 0);
         }
@@ -757,15 +757,15 @@ void MotorDrive()
       output += pot;
       output += "/ Input1(pot): ";
       output += Input1;
-      output += "/ SetPoint1(JoyX/ch2): ";
+      output += "t\SetPoint1(JoyX/ch2): ";
       output += Setpoint1;
-      output += "\tOutput1a(SwayAbsolute): ";
+      output += "/ Output1a(SwayAbsolute): ";
       output += Output1a;
       output += "\tOutput3a(Fwd/bkd): ";
       output += Output3a;
-      output += "/ SetPoint3(current): ";
+      output += "\tSetPoint3(current): ";
       output += Setpoint3;
-      output += "/ target_pos_drive-JoyY/ch1): ";
+      output += "t\target_pos_drive-JoyY/ch1): ";
       output += target_pos_drive;
     #endif
 }
@@ -889,31 +889,31 @@ void GetJoyStickValues()
       {
         ch6 = PS3Nav->getAnalogHat(LeftHatX); // ch6 = flywheel spin
       }
-      #ifdef SHADOW_DEBUG_JOY
-        output += "\tCH1: ";
-        output += ch1;
-        output += "\tCH2: ";
-        output += ch2;
-        output += "\tCH3: ";
-        output += ch3;
-        output += "\tCH4: ";
-        output += ch4;
-        output += "\tCH5: ";
-        output += ch5;
-        output += "\tCH6: ";
-        output += ch6;
-      #endif
     }
     else
     {
        ch1 = 127; // send middle position value without fluctuating for forward and backwards
        ch2 = 127; // send middle position value without fluctuating for swing left and right
-       ch3 = 127;   // send nothing value when the head is not being moved around
-       ch4 = 127;   // send nothing value when 
+       ch3 = 127; // send middle position value when the head is not being moved around
+       ch4 = 127; // send middle position value when 
        ch5 = 127;
        ch6 = 127;
     }
   }
+  #ifdef SHADOW_DEBUG_JOY
+    output += "\tCH1: ";
+    output += ch1;
+    output += "\tCH2: ";
+    output += ch2;
+    output += "\tCH3: ";
+    output += ch3;
+    output += "\tCH4: ";
+    output += ch4;
+    output += "\tCH5: ";
+    output += ch5;
+    output += "\tCH6: ";
+    output += ch6;
+  #endif
   return;
 }
 
