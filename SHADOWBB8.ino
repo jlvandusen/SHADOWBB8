@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 12/23/2016
+//                          Last Revised Date: 12/24/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 //     learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
@@ -684,7 +684,8 @@ void MotorDrive()
       Input1  = pot;
       Input1 = constrain(Input1,-90,90); // -40 40 (Happy Medium was 60)
       Setpoint1 = constrain(Setpoint1, -90,90); // -40 40  (Happy Medium was 60)
-      Setpoint1 = map(Setpoint1,90,-90,-90,90); // 40 -40 -40 40 (Happy Medium was 60)
+//      Setpoint1 = map(Setpoint1,90,-90,-90,90); // 40 -40 -40 40 (Happy Medium was 60)
+      Setpoint1 = map(Setpoint1,-90,90,90,-90); // Testing Reverse of the setpoint mapping first.. if not then we will adjust POTs above.
       PID1.Compute(); // determine PID from values provided by the MPU roll and combine with the potentiometer
 
 // =====================================================================================================================
@@ -694,8 +695,8 @@ void MotorDrive()
       if (Output1 < 0)            // decide which way to turn the wheels based on deadSpot variable - was 0 (-10) then it was -5
         {
         Output1a = abs(Output1);
-          analogWrite(SWINGLT_PIN, 0); // set PWM pins in direction of the Output1
           analogWrite(SWINGRT_PIN, Output1a);
+          analogWrite(SWINGLT_PIN, 0); // set PWM pins in direction of the Output1
         }
       else if (Output1 >= 0)      // decide which way to turn the wheels based on deadSpot variable - was 0 (20) then it was 5
         { 
