@@ -102,7 +102,7 @@
 #include <Servo.h>
 
 #include <I2Cdev.h>
-#include <MPU6050.h>  // utilize raw communications to MPU rather than DMP
+#include <MPU6050.h>  // utilize raw communications to imu rather than DMP
 #include <Wire.h>
 #include <PID_v1.h> //PID loop from http://playground.arduino.cc/Code/PIDLibrary
 
@@ -167,17 +167,17 @@ byte automateDelay = random(5,30);// set this to min and max seconds between sou
 byte action = 0;
 
 // ---------------------------------------------------------------------------------------
-//               MPU Configuration
+//               imu Configuration
 // ---------------------------------------------------------------------------------------
 
-MPU6050 mpu; //MPU6050 mpu(0x69); // <-- use for AD0 high
+MPU6050 imu; //MPU6050 imu(0x69); // <-- use for AD0 high
 
 unsigned long timer = 0; // Timers
 float timeStep = 0.01;
 float pitch = 0; // Pitch, Roll and Yaw values
 float roll = 0;
 float yaw = 0;
-unsigned long imuinterval=1500; // the time we need to wait (1sec / 1000)
+unsigned long imuinterval=1000; // the time we need to wait (1sec / 1000)
 unsigned long previousimuMillis=0;
 
 // ---------------------------------------------------------------------------------------
@@ -264,9 +264,9 @@ void setup()
     PS3Nav2->attachOnInit(onInitPS3Nav2); 
     Serial1.begin(9600); // BT HC-06 connected to Serial1 on Mega/ADK
     
-// *************************** MPU Setup and Configuration ***************************************
-    Serial.println("Starting MPU check");
-    if(!mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G))
+// *************************** imu Setup and Configuration ***************************************
+    Serial.println("Starting imu check");
+    if(!imu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G))
     {
       Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
       isIMUENABLED = false;
@@ -276,11 +276,11 @@ void setup()
       Serial.println("Found a valid MPU6050 sensor, calibration beginning");
       // Calibrate gyroscope. The calibration must be at rest.
       // If you don't want calibrate, comment this line.
-      mpu.calibrateGyro();
+      imu.calibrateGyro();
       
       // Set threshold sensivty. Default 3.
       // If you don't want use threshold, comment this line or set 0.
-      mpu.setThreshold(3);
+      imu.setThreshold(3);
       Serial.println("MPU6050 calibration completed");
       isIMUENABLED = true;
     }
@@ -347,15 +347,18 @@ void setup()
   
     PID1.SetMode(AUTOMATIC);              // PID Setup - trousers SERVO
     PID1.SetOutputLimits(-255, 255);
-    PID1.SetSampleTime(20);
+//    PID1.SetSampleTime(20);
+    PID1.SetSampleTime(1000);
   
     PID2.SetMode(AUTOMATIC);              // PID Setup - trousers Stability
     PID2.SetOutputLimits(-255, 255);
-    PID2.SetSampleTime(20);
+//    PID2.SetSampleTime(20);
+    PID2.SetSampleTime(1000);
   
     PID3.SetMode(AUTOMATIC);              // PID Setup - main drive motor
     PID3.SetOutputLimits(-255, 255);
-    PID3.SetSampleTime(20);
+//    PID3.SetSampleTime(20);
+    PID3.SetSampleTime(1000);
 
 }
 
@@ -388,7 +391,7 @@ boolean readUSB()
 
 void loop() // LOOP through functions from highest to lowest priority.
 {
-    getMPU();   // go and get the values from the MPU6050 and return roll and pitch
+    getimu();   // go and get the values from the MPU6050 and return roll and pitch
     getPOT();   // go and get the values from the Potentiometer and return pot
     initTerminal();
     if ( !readUSB() )
@@ -399,7 +402,7 @@ void loop() // LOOP through functions from highest to lowest priority.
     {
       GetJoyStickValues();  // this configures the move controllers to update ch1-6 with values
       DomeDrive();          // controls the gimble for left, right and forward/backward movement
-//      spinFlywheel();       // Spins the flywheels for stationary turn
+      spinFlywheel();       // Spins the flywheels for stationary turn
       MotorDrive();         // Main Drive and Gyro swing for turning
       toggleSettings();     // Listens for key combinations from the move controllers
     }
@@ -407,17 +410,17 @@ void loop() // LOOP through functions from highest to lowest priority.
 }
 
 // =======================================================================================
-//                          getMPU test data verify its working
+//                          getimu test data verify its working
 // =======================================================================================
 
-void getMPU()
+void getimu()
 {
   if (isIMUENABLED)
   {
     float timeStep = 0.01;
     if (!isIMUCheck)
     {
-        Vector norm = mpu.readNormalizeGyro();    // Read normalized values
+        Vector norm = imu.readNormalizeGyro();    // Read normalized values
         pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
         roll = roll + norm.XAxis * timeStep;      // Calculate Roll
         startpitch = pitch + norm.YAxis * timeStep;    // Store Initial pitch
@@ -436,11 +439,11 @@ void getMPU()
     }
     else
     {
-      unsigned long currentmpuMillis = millis(); // grab current time 
-      if ((unsigned long)(currentmpuMillis - previousimuMillis) >= imuinterval) // check if "interval" time has passed (1000 milliseconds)
+      unsigned long currentimuMillis = millis(); // grab current time 
+      if ((unsigned long)(currentimuMillis - previousimuMillis) >= imuinterval) // check if "interval" time has passed (1000 milliseconds)
       {
 //        float timeStep = 0.01; // commented and move to beginning and is set to .01
-        Vector norm = mpu.readNormalizeGyro();    // Read normalized values
+        Vector norm = imu.readNormalizeGyro();    // Read normalized values
         
         pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
         roll = roll + norm.XAxis * timeStep;      // Calculate Roll
@@ -681,7 +684,7 @@ void MotorDrive()
       Setpoint1 = constrain(Setpoint1, -90,90); // -40 40  (Happy Medium was 60)
 //      Setpoint1 = map(Setpoint1,90,-90,-90,90); // 40 -40 -40 40 (Happy Medium was 60)
       Setpoint1 = map(Setpoint1,-90,90,90,-90); // Testing Reverse of the setpoint mapping first.. if not then we will adjust POTs above.
-      PID1.Compute(); // determine PID from values provided by the MPU roll and combine with the potentiometer
+      PID1.Compute(); // determine PID from values provided by the imu roll and combine with the potentiometer
 
 // =====================================================================================================================
 //                      gyro/flywheel swing motor
