@@ -1,7 +1,7 @@
 // =======================================================================================
 //            SHADOWBB8 :  Small Handheld Arduino Droid Operating Wand for BB8
 // =======================================================================================
-//                          Last Revised Date: 12/24/2016
+//                          Last Revised Date: 12/27/2016
 //                             Written By: jlvandusen
 //                        Inspired by the PADAWAN by danf and KnightShade
 //     learn more at http://jimmyzsbb8.blogspot.com or http://jimmyzsr2.blogspot.com
@@ -79,7 +79,7 @@
 
 //#define SHADOW_DEBUG            //uncomment this for console DEBUG output
 //#define SHADOW_VERBOSE          //uncomment this for console VERBOSE output
-//#define SHADOW_DEBUG_MPU        //uncomment this for console DEBUG MPU6050 output
+//#define SHADOW_DEBUG_IMU        //uncomment this for console DEBUG MPU6050 output
 //#define SHADOW_DEBUG_POT        //uncomment this for console DEBUG POT output
 //#define SHADOW_DEBUG_JOY        //uncomment this for console DEBUG Joystick(s) output
 //#define SHADOW_DEBUG_GIMBLE     //uncomment this for console DEBUG Gimble Servos output
@@ -153,11 +153,11 @@ String output = "";
 
 byte vol = 30; // 0 = full volume, 255 off
 boolean isStickEnabled = true;
-boolean isMPUENABLED = false; 
+boolean isIMUENABLED = false; 
 byte isMotorStopped = true;
 byte isAutoCentering = true;
 byte isPotCheck = false;        // initial Potentiometer check where it is in space to find center of level plane for compensation.
-byte isMPUCheck = false;        // initial IMU check where it is in space to find center of level plane for compensation.
+byte isIMUCheck = false;        // initial IMU check where it is in space to find center of level plane for compensation.
 int startpot,startroll,startpitch;
 int potdeviation,imudeviation;              // Initiate startpot value and the deviation amount.
 byte isAutomateDomeOn = false;
@@ -177,8 +177,8 @@ float timeStep = 0.01;
 float pitch = 0; // Pitch, Roll and Yaw values
 float roll = 0;
 float yaw = 0;
-unsigned long mpuinterval=1000; // the time we need to wait (1sec)
-unsigned long previousmpuMillis=0;
+unsigned long imuinterval=1500; // the time we need to wait (1sec / 1000)
+unsigned long previousimuMillis=0;
 
 // ---------------------------------------------------------------------------------------
 //               POT Configuration
@@ -269,7 +269,7 @@ void setup()
     if(!mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G))
     {
       Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
-      isMPUENABLED = false;
+      isIMUENABLED = false;
     }
     else
     {
@@ -282,7 +282,7 @@ void setup()
       // If you don't want use threshold, comment this line or set 0.
       mpu.setThreshold(3);
       Serial.println("MPU6050 calibration completed");
-      isMPUENABLED = true;
+      isIMUENABLED = true;
     }
 
 
@@ -412,17 +412,17 @@ void loop() // LOOP through functions from highest to lowest priority.
 
 void getMPU()
 {
-  if (isMPUENABLED)
+  if (isIMUENABLED)
   {
     float timeStep = 0.01;
-    if (!isMPUCheck)
+    if (!isIMUCheck)
     {
         Vector norm = mpu.readNormalizeGyro();    // Read normalized values
         pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
         roll = roll + norm.XAxis * timeStep;      // Calculate Roll
         startpitch = pitch + norm.YAxis * timeStep;    // Store Initial pitch
         startroll = roll + norm.XAxis * timeStep;      // Store Initial roll
-        #ifdef SHADOW_DEBUG_MPU
+        #ifdef SHADOW_DEBUG_IMU
           output += "\tPitch: ";
           output += pitch;
           output += "\tStartPitch: ";
@@ -432,14 +432,14 @@ void getMPU()
           output += "\tStartRoll: ";
           output += startroll;
         #endif 
-        isMPUCheck = true;
+        isIMUCheck = true;
     }
     else
     {
       unsigned long currentmpuMillis = millis(); // grab current time 
-      if ((unsigned long)(currentmpuMillis - previousmpuMillis) >= mpuinterval) // check if "interval" time has passed (1000 milliseconds)
+      if ((unsigned long)(currentmpuMillis - previousimuMillis) >= imuinterval) // check if "interval" time has passed (1000 milliseconds)
       {
-//        float timeStep = 0.01; // commented and move to beginning
+//        float timeStep = 0.01; // commented and move to beginning and is set to .01
         Vector norm = mpu.readNormalizeGyro();    // Read normalized values
         
         pitch = pitch + norm.YAxis * timeStep;    // Calculate Pitch
@@ -447,7 +447,7 @@ void getMPU()
         yaw = yaw + norm.ZAxis * timeStep;        // Calculate yaw
         
         // Output raw
-        #ifdef SHADOW_DEBUG_MPU
+        #ifdef SHADOW_DEBUG_IMU
           output += "\tPitch: ";
           output += pitch;
           output += "\tStartPitch: ";
@@ -457,13 +457,11 @@ void getMPU()
           output += "\tStartRoll: ";
           output += startroll;
         #endif 
-        previousmpuMillis = ((timeStep*1000) - (millis() - timer));    // Wait to full timeStep period
+        previousimuMillis = ((timeStep*1000) - (millis() - timer));    // Wait to full timeStep period
       } 
-//    }
-//    else return;
     }
   }
-  else return;  // isMPUENABLED is false...
+  else return;  // isIMUENABLED is false...
 }
 
 // =======================================================================================
@@ -619,8 +617,6 @@ void spinFlywheel()
   if (PS3Nav->PS3Connected || PS3Nav->PS3NavigationConnected)
   {
     readUSB();
-//    if ((millis() - previousDomeMillis) < (2 * serialLatency) ) return;
-//    ch6a = map(ch6,0,512,255,-255);
     if (isDriveEnabled)
     {
       ch6a = map(ch6,0,255,127,-127); // jlv modified variables  PS3 LEFT L2 + RIGHT X
@@ -679,8 +675,7 @@ void MotorDrive()
       PID2.Compute();       // figure out PID for Joystick input (target_pos_trousers)    
       
       Setpoint1 = Output2;  // send the output2 from the joystick (after PID) as SetPoint1    
-      pot = map(pot, 0, 1024, -255,255);
-//      pot = pot-23; // 9  had to compensate for 570 center point on the POTs so subtracted -23 which brings it to 1 jlv This has been replaced with the "at ease" code in getPOT function.
+      pot = map(pot, 0, 1024, -255,255);  // reverse this LINE if there are issues with GYRO stabalization going opposite direction. 255,-255
       Input1  = pot;
       Input1 = constrain(Input1,-90,90); // -40 40 (Happy Medium was 60)
       Setpoint1 = constrain(Setpoint1, -90,90); // -40 40  (Happy Medium was 60)
@@ -750,10 +745,9 @@ void MotorDrive()
     else
     {
       isMotorStopped = true;
-      return;
     }
   }
-    #ifdef SHADOW_DEBUG_MAINDRIVES
+  #ifdef SHADOW_DEBUG_MAINDRIVES
       output += "\tPot: ";
       output += pot;
       output += "/ Input1(pot): ";
@@ -768,7 +762,8 @@ void MotorDrive()
       output += Setpoint3;
       output += "t\target_pos_drive-JoyY/ch1): ";
       output += target_pos_drive;
-    #endif
+    #endif 
+
 }
 
 void ps3ToggleSettings(PS3BT* myPS3 = PS3Nav)
