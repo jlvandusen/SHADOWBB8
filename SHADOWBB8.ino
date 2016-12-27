@@ -63,8 +63,8 @@
 // ---------------------------------------------------------------------------------------
 #define ENABLE_PIN       31 // Sets the enable pin throughout the code
 
-#define FLYWHEELLT_PIN   6  // Sets the flywheel pins for PWM       
-#define FLYWHEELRT_PIN   7
+#define FLYWHEELLT_PIN   11  // Sets the flywheel pins for PWM       
+#define FLYWHEELRT_PIN   12
 
 #define GIMBLELT_PIN     10  // Sets the gimble left/right pins for PWM
 #define GIMBLERT_PIN     9
@@ -79,7 +79,7 @@
 
 //#define SHADOW_DEBUG            //uncomment this for console DEBUG output
 //#define SHADOW_VERBOSE          //uncomment this for console VERBOSE output
-//#define SHADOW_DEBUG_IMU        //uncomment this for console DEBUG MPU6050 output
+#define SHADOW_DEBUG_IMU        //uncomment this for console DEBUG MPU6050 output
 //#define SHADOW_DEBUG_POT        //uncomment this for console DEBUG POT output
 //#define SHADOW_DEBUG_JOY        //uncomment this for console DEBUG Joystick(s) output
 //#define SHADOW_DEBUG_GIMBLE     //uncomment this for console DEBUG Gimble Servos output
@@ -191,13 +191,19 @@ float bodge = 7;
 //               PID Configuration
 // ---------------------------------------------------------------------------------------
 
-double Kp1 = 3;
+//double Kp1 = 3;
+//double Ki1 = 0;
+//double Kd1 = 0;
+double Kp1 = 13;
 double Ki1 = 0;
-double Kd1 = 0;
+double Kd1 = 0.05;
 double Setpoint1, Input1, Output1, Output1a;    // PID variables
 
 PID PID1(&Input1, &Output1, &Setpoint1, Kp1, Ki1 , Kd1, DIRECT);    // PID Setup - trousers SERVO
 
+//double Kp2 = .6; // position it goes to
+//double Ki2 = 0;
+//double Kd2 = 0.3;
 double Kp2 = .6; // position it goes to
 double Ki2 = 0;
 double Kd2 = 0.3;
@@ -205,6 +211,9 @@ double Setpoint2, Input2, Output2, Output2a;    // PID variables - Trouser stabi
 
 PID PID2(&Input2, &Output2, &Setpoint2, Kp2, Ki2 , Kd2, DIRECT);    // PID Setup - Trouser stability swing
 
+//double Kp3 = 3; // position it goes to
+//double Ki3 = 0;
+//double Kd3 = 0.4;
 double Kp3 = 3; // position it goes to
 double Ki3 = 0;
 double Kd3 = 0.4;
@@ -250,6 +259,7 @@ void setup()
 {
     Serial.begin(115200);
     Wire.begin(); // join I2C bus (I2Cdev library doesn't do this automatically)
+    TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz). Comment this line if having compilation difficulties with TWBR.
     while (!Serial); // Wait for serial port to connect, used on Leonardo, Teensy and other
     if (Usb.Init() == -1)
     {
@@ -280,7 +290,7 @@ void setup()
       
       // Set threshold sensivty. Default 3.
       // If you don't want use threshold, comment this line or set 0.
-      imu.setThreshold(3);
+      imu.setThreshold(0);
       Serial.println("MPU6050 calibration completed");
       isIMUENABLED = true;
     }
